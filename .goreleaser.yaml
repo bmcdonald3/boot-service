@@ -14,9 +14,24 @@ before:
     - go mod tidy
 
 builds:
-  - id: boot-service
+  - id: boot-service-server
     main: ./cmd/server
     binary: boot-service
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+  - id: boot-service-client
+    main: ./cmd/client
+    binary: boot-service-client
     env:
       - CGO_ENABLED=0
     flags:
@@ -33,7 +48,8 @@ builds:
 archives:
   - id: boot-service-archives
     builds:
-      - boot-service
+      - boot-service-server
+      - boot-service-client
     format: tar.gz
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
