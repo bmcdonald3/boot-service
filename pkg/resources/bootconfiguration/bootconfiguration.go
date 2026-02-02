@@ -28,6 +28,8 @@ type BootConfigurationSpec struct { // nolint:revive
 	NIDs   []int32  `json:"nids,omitempty"`
 	Groups []string `json:"groups,omitempty"` // Support for inventory service groups
 
+	Profile string `json:"profile,omitempty"`
+
 	// Boot configuration (kernel required)
 	Kernel string `json:"kernel"`
 	Initrd string `json:"initrd,omitempty"`
