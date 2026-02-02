@@ -148,46 +148,70 @@ func (c *BootScriptController) resolveNode(ctx context.Context, identifier NodeI
 }
 
 // findBootConfiguration finds the best matching configuration for a node
-func (c *BootScriptController) findBootConfiguration(ctx context.Context, node *node.Node) (*bootconfiguration.BootConfiguration, error) {
-	// Get all boot configurations
-	configs, err := c.client.GetBootConfigurations(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("getting boot configurations: %w", err)
-	}
+func (c *BootScriptController) findBootConfiguration(ctx context.Context, node *node.Node, profile string) (*bootconfiguration.BootConfiguration, error) {
+    // Get all boot configurations
+    configs, err := c.client.GetBootConfigurations(ctx)
+    if err != nil {
+        return nil, fmt.Errorf("getting boot configurations: %w", err)
+    }
 
-	if len(configs) == 0 {
-		return nil, fmt.Errorf("no boot configurations found")
-	}
+    // Helper to score candidates for a specific profile
+    findBestCandidate := func(targetProfile string) *bootconfiguration.BootConfiguration {
+        var candidates []configCandidate
+        
+        for _, configItem := range configs {
+            // FILTER: Only consider configs matching the requested profile
+            // Treat empty profile in config as "default"
+            configProfile := configItem.Spec.Profile
+            if configProfile == "" {
+                configProfile = "default"
+            }
+            
+            // Normalize target
+            effectiveTarget := targetProfile
+            if effectiveTarget == "" {
+                effectiveTarget = "default"
+            }
 
-	// Score each configuration against the node
-	type configCandidate struct {
-		config *bootconfiguration.BootConfiguration
-		score  int
-	}
+            if configProfile != effectiveTarget {
+                continue
+            }
 
-	var candidates []configCandidate
-	for _, configItem := range configs {
-		score := c.calculateConfigScore(&configItem, node)
-		if score > 0 {
-			candidates = append(candidates, configCandidate{config: &configItem, score: score})
-		}
-	}
+            score := c.calculateConfigScore(&configItem, node)
+            if score > 0 {
+                candidates = append(candidates, configCandidate{config: &configItem, score: score})
+            }
+        }
 
-	if len(candidates) == 0 {
-		return nil, fmt.Errorf("no matching configurations found for node %s", node.Spec.XName)
-	}
+        if len(candidates) == 0 {
+            return nil
+        }
 
-	// Sort by score (descending) and priority (descending)
-	sort.Slice(candidates, func(i, j int) bool {
-		if candidates[i].score != candidates[j].score {
-			return candidates[i].score > candidates[j].score
-		}
-		return candidates[i].config.Spec.Priority > candidates[j].config.Spec.Priority
-	})
+        // Sort by score (descending) and priority (descending)
+        sort.Slice(candidates, func(i, j int) bool {
+            if candidates[i].score != candidates[j].score {
+                return candidates[i].score > candidates[j].score
+            }
+            return candidates[i].config.Spec.Priority > candidates[j].config.Spec.Priority
+        })
 
-	selectedConfig := candidates[0].config
+        return candidates[0].config
+    }
 
-	return selectedConfig, nil
+    // 1. Try to find match for requested profile
+    if profile != "" && profile != "default" {
+        if match := findBestCandidate(profile); match != nil {
+            return match, nil
+        }
+        c.logger.Printf("No config found for profile '%s', falling back to default", profile)
+    }
+
+    // 2. Fallback to default profile
+    if match := findBestCandidate("default"); match != nil {
+        return match, nil
+    }
+
+    return nil, fmt.Errorf("no matching configurations found for node %s", node.Spec.XName)
 }
 
 // calculateConfigScore determines how well a configuration matches a node
