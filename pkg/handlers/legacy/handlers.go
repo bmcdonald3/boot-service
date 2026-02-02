@@ -22,7 +22,7 @@ import (
 
 // BootController interface for boot script generation
 type BootController interface {
-	GenerateBootScript(ctx context.Context, identifier string) (string, error)
+	GenerateBootScript(ctx context.Context, identifier string) (string, error, profile string)
 }
 
 // LegacyHandler handles legacy BSS API requests
@@ -289,8 +289,10 @@ func (h *LegacyHandler) GetBootScript(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	profile := req.URL.Query().Get("profile")
+
 	// Generate the boot script using our boot logic
-	script, err := h.controller.GenerateBootScript(ctx, identifier)
+	script, err := h.controller.GenerateBootScript(ctx, identifier, profile)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to generate boot script", err.Error())
 		return
