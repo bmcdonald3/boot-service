@@ -147,6 +147,11 @@ func (c *BootScriptController) resolveNode(ctx context.Context, identifier NodeI
 	return nil, fmt.Errorf("node not found for identifier %s", identifier.Value)
 }
 
+type configCandidate struct {
+    config *bootconfiguration.BootConfiguration
+    score  int
+}
+
 // findBootConfiguration finds the best matching configuration for a node
 func (c *BootScriptController) findBootConfiguration(ctx context.Context, node *node.Node, profile string) (*bootconfiguration.BootConfiguration, error) {
     // Get all boot configurations
