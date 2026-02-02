@@ -54,11 +54,11 @@ const (
 )
 
 // GenerateBootScript generates an iPXE boot script for a node
-func (c *BootScriptController) GenerateBootScript(ctx context.Context, identifier string) (string, error) {
+func (c *BootScriptController) GenerateBootScript(ctx context.Context, identifier string, profile string) (string, error) {
 	c.logger.Printf("Generating boot script for identifier: %s", identifier)
 
 	// Check cache first
-	cacheKey := c.generateCacheKey(identifier, "")
+	cacheKey := c.generateCacheKey(identifier, profile)
 	if cached, found := c.cache.Get(cacheKey); found {
 		c.logger.Printf("Cache hit for identifier: %s", identifier)
 		return cached, nil
@@ -72,7 +72,7 @@ func (c *BootScriptController) GenerateBootScript(ctx context.Context, identifie
 	}
 
 	// Find best matching configuration
-	config, err := c.findBootConfiguration(ctx, node)
+	config, err := c.findBootConfiguration(ctx, node, profile)
 	if err != nil {
 		c.logger.Printf("No configuration found for node %s: %v", node.Spec.XName, err)
 		// Return minimal script for nodes without configuration
