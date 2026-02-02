@@ -97,7 +97,7 @@ func (c *FlexibleBootScriptController) GenerateBootScriptWithFallback(ctx contex
 	c.logger.Printf("Generating boot script for identifier: %s (provider: %s)", identifier, c.providerType)
 
 	// First try the standard resolution
-	script, err := c.GenerateBootScript(ctx, identifier)
+	script, err := c.GenerateBootScript(ctx, identifier, "")
 	if err == nil {
 		return script, nil
 	}
@@ -121,7 +121,7 @@ func (c *FlexibleBootScriptController) GenerateBootScriptWithFallback(ctx contex
 	c.logger.Printf("%s provider resolved node %s for identifier %s", c.providerType, node.Spec.XName, identifier)
 
 	// Now try to generate script with the resolved node
-	script, err = c.GenerateBootScript(ctx, node.Spec.XName)
+	script, err = c.GenerateBootScript(ctx, node.Spec.XName, "")
 	if err != nil {
 		c.logger.Printf("Failed to generate script for %s-resolved node %s: %v", c.providerType, node.Spec.XName, err)
 		return c.generateMinimalScript(identifier), nil
