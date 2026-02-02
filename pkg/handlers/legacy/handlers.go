@@ -22,7 +22,7 @@ import (
 
 // BootController interface for boot script generation
 type BootController interface {
-	GenerateBootScript(ctx context.Context, identifier string) (string, error, profile string)
+    GenerateBootScript(ctx context.Context, identifier string, profile string) (string, error)
 }
 
 // LegacyHandler handles legacy BSS API requests
@@ -267,41 +267,40 @@ func (h *LegacyHandler) DeleteBootParameters(w http.ResponseWriter, r *http.Requ
 
 // GetBootScript handles GET /boot/v1/bootscript
 func (h *LegacyHandler) GetBootScript(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+    ctx := r.Context()
 
-	// Parse query parameters for node identification
-	host := r.URL.Query().Get("host")
-	mac := r.URL.Query().Get("mac")
-	nid := r.URL.Query().Get("nid")
+    // Parse query parameters for node identification
+    host := r.URL.Query().Get("host")
+    mac := r.URL.Query().Get("mac")
+    nid := r.URL.Query().Get("nid")
 
-	// Create boot script request
-	req := BootScriptRequest{
-		Host:   host,
-		Mac:    mac,
-		Nid:    nid,
-		Format: r.URL.Query().Get("format"), // defaults to "ipxe"
-	}
+    // Create boot script request
+    req := BootScriptRequest{
+        Host:   host,
+        Mac:    mac,
+        Nid:    nid,
+        Format: r.URL.Query().Get("format"), // defaults to "ipxe"
+    }
 
-	// Extract the node identifier
-	identifier := ExtractNodeIdentifier(req)
-	if identifier == "" {
-		h.writeError(w, http.StatusBadRequest, "Missing node identifier", "At least one node identifier (host, mac, or nid) must be provided")
-		return
-	}
+    // Extract the node identifier
+    identifier := ExtractNodeIdentifier(req)
+    if identifier == "" {
+        h.writeError(w, http.StatusBadRequest, "Missing node identifier", "At least one node identifier (host, mac, or nid) must be provided")
+        return
+    }
 
-	profile := req.URL.Query().Get("profile")
+    profile := r.URL.Query().Get("profile")
 
-	// Generate the boot script using our boot logic
-	script, err := h.controller.GenerateBootScript(ctx, identifier, profile)
-	if err != nil {
-		h.writeError(w, http.StatusInternalServerError, "Failed to generate boot script", err.Error())
-		return
-	}
+    script, err := h.controller.GenerateBootScript(ctx, identifier, profile)
+    if err != nil {
+        h.writeError(w, http.StatusInternalServerError, "Failed to generate boot script", err.Error())
+        return
+    }
 
-	// Return the script as plain text (iPXE format)
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(script)) //nolint:errcheck
+    // Return the script as plain text (iPXE format)
+    w.Header().Set("Content-Type", "text/plain")
+    w.WriteHeader(http.StatusOK)
+    w.Write([]byte(script)) //nolint:errcheck
 }
 
 // GetServiceStatus handles GET /boot/v1/service/status
