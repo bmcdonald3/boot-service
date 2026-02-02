@@ -37,7 +37,7 @@ func (c *EnhancedBootScriptController) GenerateBootScriptWithHSM(ctx context.Con
 	c.logger.Printf("Generating boot script for identifier: %s (with HSM fallback)", identifier)
 
 	// First try the standard resolution
-	script, err := c.GenerateBootScript(ctx, identifier)
+	script, err := c.GenerateBootScript(ctx, identifier, "")
 	if err == nil {
 		return script, nil
 	}
@@ -55,7 +55,7 @@ func (c *EnhancedBootScriptController) GenerateBootScriptWithHSM(ctx context.Con
 	c.logger.Printf("HSM resolved node %s for identifier %s", node.Spec.XName, identifier)
 
 	// Now try to generate script with the HSM-resolved node
-	script, err = c.GenerateBootScript(ctx, node.Spec.XName)
+	script, err = c.GenerateBootScript(ctx, node.Spec.XName, "")
 	if err != nil {
 		c.logger.Printf("Failed to generate script for HSM-resolved node %s: %v", node.Spec.XName, err)
 		return c.generateMinimalScript(identifier), nil
